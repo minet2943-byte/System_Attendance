@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, Eye, EyeOff } from "lucide-react";
 
 export default function CreateStudentModal({
   isOpen,
@@ -10,13 +10,17 @@ export default function CreateStudentModal({
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     studentCode: "",
     classId: "",
     phoneNumber: "",
     dateOfBirth: "",
-    guardianName: "",
-    guardianPhone: "",
   });
+
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,21 +28,25 @@ export default function CreateStudentModal({
       ...prev,
       [name]: value,
     }));
+    if (error) setError("");
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     const studentRequest = {
-      userId: 1,
       name: formData.name,
       studentCode: formData.studentCode,
       email: formData.email,
+      password: formData.password,
       phoneNumber: formData.phoneNumber,
       dateOfBirth: formData.dateOfBirth,
       classId: formData.classId,
-      guardianName: formData.guardianName,
-      guardianPhone: formData.guardianPhone,
     };
 
     onSubmit(studentRequest);
@@ -46,13 +54,16 @@ export default function CreateStudentModal({
     setFormData({
       name: "",
       email: "",
+      password: "",
+      confirmPassword: "",
       studentCode: "",
       classId: "",
       phoneNumber: "",
       dateOfBirth: "",
-      guardianName: "",
-      guardianPhone: "",
     });
+    setError("");
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   if (!isOpen) return null;
@@ -74,6 +85,7 @@ export default function CreateStudentModal({
     focus:ring-2
     focus:ring-blue-100
   `;
+
   const labelClasses = `
     block 
     text-xs 
@@ -87,25 +99,35 @@ export default function CreateStudentModal({
   return (
     <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-slate-100">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">Register Student</h2>
-            <p className="text-xs text-slate-400">Add a new student profile and assign their details.</p>
+            <h2 className="text-lg font-bold text-slate-800">
+              Register Student
+            </h2>
+            <p className="text-xs text-slate-400">
+              Add a new student profile and assign their details.
+            </p>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={onClose}
             className="p-1.5 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+        <form
+          id="create-student-form"
+          onSubmit={handleSubmit}
+          className="overflow-y-auto flex-1 p-6 space-y-6"
+        >
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-600">
+              {error}
+            </div>
+          )}
 
-        {/* Scrollable Form Container */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-6">
-          
-          {/* Section: Academic Details */}
           <div>
             <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3 pb-1 border-b border-slate-100">
               Academic Details
@@ -143,7 +165,6 @@ export default function CreateStudentModal({
             </div>
           </div>
 
-          {/* Section: Personal Information */}
           <div>
             <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3 pb-1 border-b border-slate-100">
               Personal Information
@@ -197,40 +218,75 @@ export default function CreateStudentModal({
             </div>
           </div>
 
-          {/* Section: Guardian Contact */}
           <div>
             <h3 className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-3 pb-1 border-b border-slate-100">
-              Guardian Contact
+              Account Credentials
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelClasses}>Guardian Name</label>
-                <input
-                  type="text"
-                  name="guardianName"
-                  placeholder="Jane Doe"
-                  value={formData.guardianName}
-                  onChange={handleChange}
-                  className={inputClasses}
-                />
+                <label className={labelClasses}>Password *</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`${inputClasses} pr-10`}
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
               <div>
-                <label className={labelClasses}>Guardian Phone</label>
-                <input
-                  type="tel"
-                  name="guardianPhone"
-                  placeholder="+1 (555) 000-0000"
-                  value={formData.guardianPhone}
-                  onChange={handleChange}
-                  className={inputClasses}
-                />
+                <label className={labelClasses}>Confirm Password *</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    name="confirmPassword"
+                    placeholder="••••••••"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className={`${inputClasses} pr-10`}
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    aria-label={
+                      showConfirmPassword
+                        ? "Hide confirm password"
+                        : "Show confirm password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-
         </form>
 
-        {/* Action Footer */}
         <div className="flex justify-end items-center gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
           <button
             type="button"
@@ -241,13 +297,12 @@ export default function CreateStudentModal({
           </button>
           <button
             type="submit"
-            onClick={handleSubmit}
+            form="create-student-form"
             className="px-5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-medium rounded-lg text-sm transition-colors shadow-sm"
           >
             Create Student
           </button>
         </div>
-
       </div>
     </div>
   );

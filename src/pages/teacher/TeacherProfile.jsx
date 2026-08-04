@@ -36,7 +36,7 @@ export default function TeacherProfile() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-2">
+      <div className="flex flex-col items-center justify-center min-h-100 gap-2">
         <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
         <p className="text-sm text-slate-500">Loading profile data...</p>
       </div>

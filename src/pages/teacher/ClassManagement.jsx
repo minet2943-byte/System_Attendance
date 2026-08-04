@@ -19,9 +19,11 @@ import CreateStudentModal from "../../components/CreateStudentModal";
 import classService from "../../services/classService";
 import studentService from "../../services/studentService";
 import enrollService from "../../services/enrollService";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ClassManagement() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // ===============================
   // States
@@ -47,7 +49,13 @@ export default function ClassManagement() {
       setError("");
       const response = await classService.getClasses();
 
-      const data = response.data.map((item) => ({
+      const items = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      const data = items.map((item) => ({
         id: item.id,
         code: item.classCode,
         title: item.classTitle,
@@ -112,7 +120,7 @@ export default function ClassManagement() {
 
   const handleDeleteClass = async (id) => {
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this class?"
+      "Are you sure you want to delete this class?",
     );
     if (!confirmDelete) return;
 
@@ -136,10 +144,18 @@ export default function ClassManagement() {
 
   const handleSubmitStudent = async (student) => {
     try {
-      const studentResponse = await studentService.createStudent(student);
+      const createdStudent = await studentService.createStudent({
+        ...student,
+        teacherId: user?.id,
+      });
+
+      const studentId = createdStudent?.id ?? createdStudent?.data?.id;
+      if (!studentId) {
+        throw new Error("Student creation succeeded but returned no ID");
+      }
 
       await enrollService.createEnroll({
-        studentId: studentResponse.data.id,
+        studentId,
         classId: selectedClassId,
       });
 
@@ -147,7 +163,10 @@ export default function ClassManagement() {
       setIsStudentModalOpen(false);
       fetchClasses();
     } catch (err) {
-      console.error("Failed to create student:", err.response?.data || err.message);
+      console.error(
+        "Failed to create student:",
+        err.response?.data || err.message,
+      );
       alert("Create student failed");
     }
   };

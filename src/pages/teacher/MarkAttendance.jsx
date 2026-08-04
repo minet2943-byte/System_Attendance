@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Swal from "sweetalert2";
 import {
   Users,
   CheckCircle2,
@@ -24,104 +25,81 @@ export default function MarkAttendance() {
   const [filterStatus, setFilterStatus] = useState("All");
   const [classes, setClasses] = useState([]);
   const [classSection, setClassSection] = useState("");
-  const [selectedDate, setSelectedDate] = useState("2023-10-27"); 
-  const [activeRemarkId, setActiveRemarkId] = useState(null); 
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
+  const [activeRemarkId, setActiveRemarkId] = useState(null);
   const [selectedSessionId, setSelectedSessionId] = useState([]);
 
   // 1. Fetch available classes from Class API on component mount
   useEffect(() => {
-  const loadClasses = async () => {
-  try {
-    const response = await classService.getClasses();
-    const data = response.data;
+    const loadClasses = async () => {
+      try {
+        const response = await classService.getClasses();
+        const data = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : [];
 
-    const standardizedClasses = data.map((cls) => ({
-      id: cls.id,
-      classTitle: cls.classTitle,
-    }));
+        const standardizedClasses = data.map((cls) => ({
+          id: cls.id,
+          classTitle: cls.classTitle,
+        }));
 
-    setClasses(standardizedClasses);
-  } catch (error) {
-    console.error("API Error loading classes:", error);
-  }
-};
+        setClasses(standardizedClasses);
+      } catch (error) {
+        console.error("API Error loading classes:", error);
+      }
+    };
     loadClasses();
   }, []);
 
   // 2. Dynamically fetch students when the selected class changes
-   useEffect(() => {
+  useEffect(() => {
+    const loadStudents = async () => {
+      // ពិនិត្យថាបានជ្រើស Class ឬនៅ
+      if (!classSection) {
+        setStudents([]);
 
-     const loadStudents = async () => {
+        return;
+      }
 
-    // ពិនិត្យថាបានជ្រើស Class ឬនៅ
-    if (!classSection) {
-
-      setStudents([]);
-
-      return;
-
-    }
-
-
-    try {
-
-      
+      try {
         const response = await studentService.getStudentsByClass(classSection);
 
         console.log("Class ID:", classSection);
-        console.log("Response:", response.data);
+        console.log("Response:", response?.data ?? response);
 
+        const rawData = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.data?.data)
+              ? response.data.data
+              : [];
 
-      console.log(
-        "Students API:",
-        response.data
-      );
+        const studentList = rawData.map((student) => ({
+          id: student.id,
+          name: student.name,
+          gender: student.gender,
+          status: "Absent",
 
+          history: 0,
 
-      const data = Array.isArray(response.data)
-        ? response.data
-        : response.data.data || [];
+          remark: "",
+        }));
 
+        setStudents(studentList);
+      } catch (error) {
+        console.error("API Error loading students:", error);
 
-      const studentList = data.map(student => ({
+        setStudents([]);
+      }
+    };
 
-        id: student.id,
-
-        name: student.name,
-
-        gender: student.gender,
-
-        status: "Absent",
-
-        history: 0,
-
-        remark: ""
-
-      }));
-
-
-      setStudents(studentList);
-
-
-    } catch(error) {
-
-
-      console.error(
-        "API Error loading students:",
-        error
-      );
-
-
-      setStudents([]);
-
-    }
-
-  };
-
-
-  loadStudents();
-
-}, [classSection]); 
+    loadStudents();
+  }, [classSection]);
 
   // Summary Metrics calculations
   const totalStudents = students.length;
@@ -132,76 +110,76 @@ export default function MarkAttendance() {
   const changeStatus = (id, status) => {
     setStudents((prev) =>
       prev.map((student) =>
-        student.id === id ? { ...student, status } : student
-      )
+        student.id === id ? { ...student, status } : student,
+      ),
     );
   };
 
   const handleRemarkChange = (id, remark) => {
     setStudents((prev) =>
       prev.map((student) =>
-        student.id === id ? { ...student, remark } : student
-      )
+        student.id === id ? { ...student, remark } : student,
+      ),
     );
   };
 
   const markAllPresent = () => {
     setStudents((prev) =>
-      prev.map((student) => ({ ...student, status: "Present" }))
+      prev.map((student) => ({ ...student, status: "Present" })),
     );
   };
 
-const saveAttendance = async () => {
-
+  const saveAttendance = async () => {
     try {
+      const sessionResponse = await attendanceSessionService.createSession({
+        classId: Number(classSection),
+        sessionDate: selectedDate,
+        startAt: "08:00:00",
+      });
 
-        // Create attendance session
-        const sessionResponse =
-            await attendanceSessionService.createSession({
+      const sessionId = sessionResponse.id;
 
-                classId: Number(classSection),
-                sessionDate: selectedDate,
-                startAt: "08:00:00"
+      // Parallel requests for better performance
+      await Promise.all(
+        students.map((student) =>
+          attendanceService.saveAttendance({
+            sessionId,
+            studentId: student.id,
+            status: student.status.toUpperCase(),
+            remark: student.remark || "",
+          }),
+        ),
+      );
 
-            });
-
-       const sessionId = sessionResponse.id;
-
-        // Save every student
-        for (const student of students) {
-
-            const payload = {
-
-                sessionId,
-                studentId: student.id,
-                status: student.status.toUpperCase(),
-                remark: student.remark || ""
-
-            };
-
-            await attendanceService.saveAttendance(payload);
-
-        }
-
-        alert("Attendance saved successfully!");
-
+      // Centered Success Modal
+      Swal.fire({
+        title: "Success!",
+        text: "Attendance saved successfully.",
+        icon: "success",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#3085d6",
+      });
     } catch (error) {
+      console.error(error);
 
-        console.error(error);
-
-        alert("Cannot save attendance");
-
+      // Centered Error Modal
+      Swal.fire({
+        title: "Error!",
+        text: error.response?.data?.message || "Cannot save attendance.",
+        icon: "error",
+        confirmButtonText: "Try Again",
+        confirmButtonColor: "#d33",
+      });
     }
-
-};
-
+  };
   // Safe search logic: Casts ID to String to avoid runtime .toLowerCase() crashes
   const filteredStudents = students.filter((student) => {
     const studentIdStr = student.id ? String(student.id) : "";
     const matchesSearch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       studentIdStr.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === "All" || student.status === filterStatus;
+    const matchesStatus =
+      filterStatus === "All" || student.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
@@ -214,7 +192,9 @@ const saveAttendance = async () => {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[#0f172a]">Mark Attendance</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-[#0f172a]">
+            Mark Attendance
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
             Review and record student attendance for today's session.
           </p>
@@ -343,7 +323,8 @@ const saveAttendance = async () => {
       <div className="flex justify-between items-center mb-4 px-1">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
           <SlidersHorizontal className="w-4 h-4" />
-          Filtering by: <span className="text-slate-700">{filterStatus} Students</span>
+          Filtering by:{" "}
+          <span className="text-slate-700">{filterStatus} Students</span>
         </div>
         <div className="text-xs font-semibold text-slate-400">
           Showing {filteredStudents.length} of {totalStudents} students
@@ -371,7 +352,9 @@ const saveAttendance = async () => {
                       {getInitials(student.name)}
                     </div>
                     <div>
-                      <div className="font-bold text-slate-800 text-sm">{student.name}</div>
+                      <div className="font-bold text-slate-800 text-sm">
+                        {student.name}
+                      </div>
                       <div className="text-xs text-slate-400 font-medium mt-0.5">
                         ID: {student.id}
                       </div>
@@ -422,7 +405,9 @@ const saveAttendance = async () => {
                     </div>
                     <span
                       className={`text-[11px] font-bold block text-center ${
-                        student.history >= 80 ? "text-blue-600" : "text-rose-500"
+                        student.history >= 80
+                          ? "text-blue-600"
+                          : "text-rose-500"
                       }`}
                     >
                       {student.history}% Attendance
@@ -432,9 +417,13 @@ const saveAttendance = async () => {
 
                 <td className="py-4 px-6 text-center">
                   <div className="relative flex justify-center items-center">
-                    <button 
-                      onClick={() => setActiveRemarkId(activeRemarkId === student.id ? null : student.id)}
-                      className={`${student.remark ? 'text-blue-600' : 'text-slate-400'} hover:text-slate-600 transition`}
+                    <button
+                      onClick={() =>
+                        setActiveRemarkId(
+                          activeRemarkId === student.id ? null : student.id,
+                        )
+                      }
+                      className={`${student.remark ? "text-blue-600" : "text-slate-400"} hover:text-slate-600 transition`}
                     >
                       <MessageSquare className="w-5 h-5" />
                     </button>
@@ -444,11 +433,13 @@ const saveAttendance = async () => {
                           type="text"
                           placeholder="Add Note..."
                           value={student.remark || ""}
-                          onChange={(e) => handleRemarkChange(student.id, e.target.value)}
+                          onChange={(e) =>
+                            handleRemarkChange(student.id, e.target.value)
+                          }
                           className="bg-slate-700 text-white rounded px-2 py-1 outline-none w-full"
                           autoFocus
                         />
-                        <button 
+                        <button
                           onClick={() => setActiveRemarkId(null)}
                           className="p-1 hover:bg-slate-700 rounded"
                         >
@@ -467,13 +458,23 @@ const saveAttendance = async () => {
   );
 }
 
-function Card({ title, value, icon, bgColor, highlightColor = "text-slate-800" }) {
+function Card({
+  title,
+  value,
+  icon,
+  bgColor,
+  highlightColor = "text-slate-800",
+}) {
   return (
     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex gap-4 items-center">
       <div className={`${bgColor} p-3 rounded-2xl`}>{icon}</div>
       <div>
-        <p className="text-slate-400 text-xs font-semibold tracking-wide uppercase">{title}</p>
-        <h2 className={`text-2xl font-black mt-0.5 ${highlightColor}`}>{value}</h2>
+        <p className="text-slate-400 text-xs font-semibold tracking-wide uppercase">
+          {title}
+        </p>
+        <h2 className={`text-2xl font-black mt-0.5 ${highlightColor}`}>
+          {value}
+        </h2>
       </div>
     </div>
   );
@@ -482,9 +483,12 @@ function Card({ title, value, icon, bgColor, highlightColor = "text-slate-800" }
 function StatusButton({ children, active, type, onClick }) {
   let activeStyles = "";
   if (active) {
-    if (type === "Present") activeStyles = "bg-emerald-600 text-white shadow-sm";
-    else if (type === "Late") activeStyles = "bg-amber-700 text-white shadow-sm";
-    else if (type === "Absent") activeStyles = "bg-rose-600 text-white shadow-sm";
+    if (type === "Present")
+      activeStyles = "bg-emerald-600 text-white shadow-sm";
+    else if (type === "Late")
+      activeStyles = "bg-amber-700 text-white shadow-sm";
+    else if (type === "Absent")
+      activeStyles = "bg-rose-600 text-white shadow-sm";
   } else {
     activeStyles = "text-slate-500 hover:text-slate-800";
   }

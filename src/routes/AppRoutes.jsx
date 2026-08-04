@@ -91,8 +91,8 @@ function AppRoutes() {
       >
         <Route index element={<StudentDashboard />} />
         <Route path="profile" element={<Profile />} />
-        <Route path="my-attendance" element={<MyAttendance />} />
-        <Route path="reports" element={<StudentReports />} />
+        {/* <Route path="my-attendance" element={<MyAttendance />} />
+        <Route path="reports" element={<StudentReports />} /> */}
       </Route>
 
       {/* បើ URL មិនត្រឹមត្រូវ */}

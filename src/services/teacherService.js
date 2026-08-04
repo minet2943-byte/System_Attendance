@@ -1,13 +1,13 @@
-import axios from "axios";
+import api from "./api";
 
-const API_URL = "http://localhost:8080/api/teacher";
+const API_URL = "/teacher";
 
 const getProfile = async () => {
   const user = JSON.parse(localStorage.getItem("user"));
 
-  const response = await axios.get(
-    `${API_URL}/profile?email=${user.email}`
-  );
+  const response = await api.get(`${API_URL}/profile`, {
+    params: { email: user?.email },
+  });
 
   return response.data;
 };

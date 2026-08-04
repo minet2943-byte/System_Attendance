@@ -6,21 +6,29 @@ const api = axios.create({
 });
 
 
-api.interceptors.request.use((config)=>{
+api.interceptors.request.use((config) => {
 
     const token = localStorage.getItem("token");
 
-    if(token){
+    console.log("===== AXIOS REQUEST =====");
+    console.log("URL:", config.url);
+    console.log("TOKEN:", token);
+
+    if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
-    return config;
+    console.log(
+        "AUTH HEADER:",
+        config.headers.Authorization
+    );
 
+    return config;
 });
 
 
-// បន្ថែម API report
 api.getReports = (params)=>{
+
 
     return api.get("/attendance/report", {
         params

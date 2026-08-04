@@ -56,18 +56,18 @@ export default function Sidebar({ role = "TEACHER" }) {
   // Student Navigation
   const studentNavItems = [
     { id: "Dashboard", label: "Dashboard", icon: LayoutGrid, path: "/student" },
-    {
-      id: "MyAttendance",
-      label: "My Attendance",
-      icon: CalendarDays,
-      path: "/student/my-attendance",
-    },
-    {
-      id: "Reports",
-      label: "My Reports",
-      icon: BarChart3,
-      path: "/student/reports",
-    },
+    // {
+    //   id: "MyAttendance",
+    //   label: "My Attendance",
+    //   icon: CalendarDays,
+    //   path: "/student/my-attendance",
+    // },
+    // {
+    //   id: "Reports",
+    //   label: "My Reports",
+    //   icon: BarChart3,
+    //   path: "/student/reports",
+    // },
   ];
 
   const studentBottomItems = [
@@ -79,11 +79,13 @@ export default function Sidebar({ role = "TEACHER" }) {
   const mainNavItems = isStudent ? studentNavItems : teacherNavItems;
   const bottomNavItems = isStudent ? studentBottomItems : teacherBottomItems;
 
-  const isPathActive = (path) => {
-    return (
-      location.pathname === path || location.pathname.startsWith(path + "/")
-    );
-  };
+ const isPathActive = (path) => {
+  if (path === "/teacher" || path === "/student") {
+    return location.pathname === path;
+  }
+
+  return location.pathname.startsWith(path);
+};
 
   const NavButton = ({ item }) => {
     const Icon = item.icon;

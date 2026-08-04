@@ -1,35 +1,43 @@
-import axios from "axios";
 import api from "./api";
 
-const API_URL = "http://localhost:8080/api/students";
-
 const studentService = {
+  getAllStudents: async () => {
+    const response = await api.get("/students");
+    return response.data ?? response;
+  },
 
-    getAllStudents: () => {
-        return axios.get(API_URL);
-    },
+  getStudentsByClass: async (classId) => {
+    const response = await api.get(`/students/class/${classId}`);
 
-    getMyProfile: async () => {
-        const response = await api.get("/students/profile");
-        return response.data;
-    },
+    return response.data ?? response;
+  },
 
-    getStudentsByClass: (id) => {
-        return axios.get(`${API_URL}/class/${id}`);
-    },
+  getMyProfile: async () => {
+    const response = await api.get("/students/profile");
+    return response.data ?? response;
+  },
 
-    createStudent: (data) => {
-        return axios.post(API_URL, data);
-    },
+  getStudentProfile: async () => {
+    return studentService.getMyProfile();
+  },
 
-    updateStudent: (id, data) => {
-        return axios.put(`${API_URL}/${id}`, data);
-    },
+  createStudent: async (data) => {
+    const response = await api.post("/students", data);
 
-    deleteStudent: (id) => {
-        return axios.delete(`${API_URL}/${id}`);
-    }
+    return response.data;
+  },
 
+  updateStudent: async (id, data) => {
+    const response = await api.put(`/students/${id}`, data);
+
+    return response.data;
+  },
+
+  deleteStudent: async (id) => {
+    const response = await api.delete(`/students/${id}`);
+
+    return response.data;
+  },
 };
 
 export default studentService;

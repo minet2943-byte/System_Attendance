@@ -53,15 +53,21 @@ const authService = {
                 role
             }
         );
-        localStorage.setItem(
-            "user",
-            JSON.stringify(response.data)
-        );
 
-        return response.data;
+        const data = response.data;
+
+        if (data.token) {
+            localStorage.setItem("token", data.token);
+        }
+
+        const userToStore = data.user ?? data;
+
+        localStorage.setItem("user", JSON.stringify(userToStore));
+
+        return userToStore;
     },
 
-
+ 
     // Logout
     logout: () => {
         localStorage.removeItem("token");

@@ -7,14 +7,12 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
-import attendanceApi from "../../services/attendanceApi"; // Adjust path if needed
+import historyService from "../../services/historyService";
 import classService from "../../services/classService";
 
 export default function History() {
-
-  const [fromDate, setFromDate] = useState("2026-07-01");
-  const [toDate, setToDate] = useState("2026-07-31");
-
+  const [fromDate, setFromDate] = useState("2023-10-01");
+  const [toDate, setToDate] = useState("2023-10-31");
   // API State
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,55 +20,62 @@ export default function History() {
 
   const [classes, setClasses] = useState([]);
 
-   const [selectedClass, setSelectedClass] = useState("");
+  const [selectedClass, setSelectedClass] = useState("");
 
   // Fetch reports function
   const fetchReports = async () => {
+    if (!selectedClass) {
+      setError("Please select a class before filtering reports.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      // Adjust endpoint/params based on your backend route
- const response = await attendanceApi.getReports({
+      const response = await historyService.getAttendanceHistory(
+        selectedClass,
+        fromDate,
+        toDate,
+      );
 
-    classId: selectedClass,
-    fromDate: fromDate,
-    toDate: toDate
-
-});
-      // Response array from API
-      setReportData(response.data);
+      const data = response.data ?? response;
+      setReportData(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch attendance history:", err);
-      setError("Failed to load attendance report. Please try again.");
+      setError(
+        err.response?.data?.message ||
+          "Failed to load attendance report. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const fetchClasses = async () => {
-  try {
+    try {
+      const response = await classService.getClasses();
+      const data = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
 
-    const response = await classService.getClasses();
+      console.log("Classes:", data);
 
-    console.log("Classes:", response.data);
+      setClasses(data);
 
-    setClasses(response.data);
-
-    // select class ដំបូង automatic
-   if(response.data.length > 0){
-  setSelectedClass(response.data[0].id);
-}
-
-  } catch(error){
-    console.error("Failed to fetch classes:", error);
-  }
-};
+      // select class ដំបូង automatic
+      if (data.length > 0) {
+        setSelectedClass(data[0].id);
+      }
+    } catch (error) {
+      console.error("Failed to fetch classes:", error);
+    }
+  };
   // Initial load
- useEffect(() => {
-
-  fetchClasses();
-
-}, []);
+  useEffect(() => {
+    fetchClasses();
+  }, []);
 
   // Compute overall summary stats dynamically from response data
   const calculatedStats = useMemo(() => {
@@ -85,7 +90,7 @@ export default function History() {
         acc.rateSum += row.attendanceRate || 0;
         return acc;
       },
-      { present: 0, absent: 0, rateSum: 0 }
+      { present: 0, absent: 0, rateSum: 0 },
     );
 
     const avgRate = (totals.rateSum / reportData.length).toFixed(1);
@@ -123,7 +128,7 @@ export default function History() {
 
   return (
     <div className="flex-1 min-h-screen bg-[#fafbfe] font-sans text-[#1e293b]">
-      <main className="p-8 max-w-[1400px] mx-auto space-y-8">
+      <main className="p-8 max-w-350 mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
@@ -178,25 +183,17 @@ export default function History() {
                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wide block mb-2">
                   Select Class
                 </label>
-               <select
- value={selectedClass}
- onChange={(e)=>setSelectedClass(e.target.value)}
- className="w-full px-4 py-2.5 bg-[#f8fafc] border rounded-lg"
->
-
-{
-classes.map((cls)=>(
-<option 
- key={cls.id}
- value={cls.classCode}
->
-{cls.classCode} - {cls.classTitle}
-
-</option>
-))
-}
-
-</select>
+                <select
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-[#f8fafc] border rounded-lg"
+                >
+                  {classes.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.classCode} - {cls.classTitle}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -245,9 +242,13 @@ classes.map((cls)=>(
           {/* Table Container */}
           <div className="overflow-x-auto">
             {error ? (
-              <div className="p-8 text-center text-red-500 font-medium">{error}</div>
+              <div className="p-8 text-center text-red-500 font-medium">
+                {error}
+              </div>
             ) : reportData.length === 0 && !loading ? (
-              <div className="p-8 text-center text-slate-400">No report data found.</div>
+              <div className="p-8 text-center text-slate-400">
+                No report data found.
+              </div>
             ) : (
               <table className="w-full">
                 <thead>
@@ -311,7 +312,9 @@ classes.map((cls)=>(
                           <div className="w-16 h-2 bg-slate-100 rounded-full overflow-hidden">
                             <div
                               className="h-full bg-[#0052cc]"
-                              style={{ width: `${Math.min(row.attendanceRate, 100)}%` }}
+                              style={{
+                                width: `${Math.min(row.attendanceRate, 100)}%`,
+                              }}
                             />
                           </div>
                           <span className="text-xs font-bold text-slate-900 w-12 text-right">

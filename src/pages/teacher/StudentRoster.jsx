@@ -13,7 +13,7 @@ export default function StudentRoster() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Drawer / Editing States
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -23,29 +23,27 @@ export default function StudentRoster() {
     loadStudents();
   }, []);
 
-const loadStudents = async () => {
-  try {
+  const loadStudents = async () => {
+    try {
+      setLoading(true);
 
-    setLoading(true);
+      const response = await studentService.getAllStudents();
+      const studentData = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : response?.data?.data || [];
 
-    const response = await studentService.getAllStudents();
+      console.log("Student API:", studentData);
 
-    console.log("Student API:", response.data);
-
-    setStudents(
-      Array.isArray(response.data)
-        ? response.data
-        : response.data.data || []
-    );
-
-  } catch(error) {
-    console.error("Error loading students:", error);
-    setStudents([]);
-  } finally {
-    setLoading(false);
-
-  }
-};
+      setStudents(studentData);
+    } catch (error) {
+      console.error("Error loading students:", error);
+      setStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
   // Open Drawer to Edit
   const handleEditClick = (student) => {
     setSelectedStudent({ ...student });
@@ -81,17 +79,29 @@ const loadStudents = async () => {
 
   // Delete Student Function
   const handleDeleteStudent = async (targetId) => {
-    if (!window.confirm("Are you absolutely sure you want to permanently delete this student record?")) return;
+    if (
+      !window.confirm(
+        "Are you absolutely sure you want to permanently delete this student record?",
+      )
+    )
+      return;
 
     try {
       await studentService.deleteStudent(targetId);
-      
+
       // Dynamically filter out state elements supporting either id or studentCode matches
       setStudents((prev) =>
-        prev.filter((student) => student.id !== targetId && student.studentCode !== targetId)
+        prev.filter(
+          (student) =>
+            student.id !== targetId && student.studentCode !== targetId,
+        ),
       );
       // Close the editing drawer seamlessly if the deleted record was open
-      if (isDrawerOpen && (selectedStudent?.id === targetId || selectedStudent?.studentCode === targetId)) {
+      if (
+        isDrawerOpen &&
+        (selectedStudent?.id === targetId ||
+          selectedStudent?.studentCode === targetId)
+      ) {
         setIsDrawerOpen(false);
       }
 
@@ -109,7 +119,11 @@ const loadStudents = async () => {
     const targetCode = student.studentCode?.toLowerCase() || "";
     const search = searchTerm.toLowerCase();
 
-    return targetName.includes(search) || targetId.includes(search) || targetCode.includes(search);
+    return (
+      targetName.includes(search) ||
+      targetId.includes(search) ||
+      targetCode.includes(search)
+    );
   });
 
   return (
@@ -117,9 +131,12 @@ const loadStudents = async () => {
       {/* HEADER SECTION */}
       <div className="flex justify-between items-start mb-8">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-[#0f172a]">Student Roster</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-[#0f172a]">
+            Student Roster
+          </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Manage comprehensive student profiles, security codes, and core operations.
+            Manage comprehensive student profiles, security codes, and core
+            operations.
           </p>
         </div>
       </div>
@@ -167,30 +184,50 @@ const loadStudents = async () => {
                       <div className="h-3 bg-slate-200 rounded w-16" />
                     </div>
                   </td>
-                  <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-20" /></td>
-                  <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-40" /></td>
-                  <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                  <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                  <td className="py-4 px-6"><div className="h-8 bg-slate-200 rounded w-16 mx-auto" /></td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 bg-slate-200 rounded w-20" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 bg-slate-200 rounded w-40" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 bg-slate-200 rounded w-24" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 bg-slate-200 rounded w-24" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-8 bg-slate-200 rounded w-16 mx-auto" />
+                  </td>
                 </tr>
               ))
             ) : filteredStudents.length === 0 ? (
               <tr>
-                <td colSpan="6" className="text-center py-12 text-sm text-slate-400 font-medium">
+                <td
+                  colSpan="6"
+                  className="text-center py-12 text-sm text-slate-400 font-medium"
+                >
                   No matching records found.
                 </td>
               </tr>
             ) : (
               filteredStudents.map((student) => (
-                <tr key={student.id || student.studentCode} className="hover:bg-slate-50/50 transition">
+                <tr
+                  key={student.id || student.studentCode}
+                  className="hover:bg-slate-50/50 transition"
+                >
                   {/* Avatar & Identifiers */}
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 font-bold flex items-center justify-center text-sm border border-blue-100">
-                        {student.name ? student.name.charAt(0).toUpperCase() : "?"}
+                        {student.name
+                          ? student.name.charAt(0).toUpperCase()
+                          : "?"}
                       </div>
                       <div>
-                        <div className="font-bold text-slate-800 text-sm">{student.name}</div>
+                        <div className="font-bold text-slate-800 text-sm">
+                          {student.name}
+                        </div>
                         <div className="text-xs text-slate-400 font-medium mt-0.5">
                           DB-ID: {student.id || "N/A"}
                         </div>
@@ -204,16 +241,22 @@ const loadStudents = async () => {
                   </td>
 
                   {/* Email */}
-                  <td className="py-4 px-6 text-sm text-slate-600">{student.email}</td>
+                  <td className="py-4 px-6 text-sm text-slate-600">
+                    {student.email}
+                  </td>
 
                   {/* Phone */}
                   <td className="py-4 px-6 text-sm text-slate-600">
-                    {student.phoneNumber || <span className="text-slate-300">—</span>}
+                    {student.phoneNumber || (
+                      <span className="text-slate-300">—</span>
+                    )}
                   </td>
 
                   {/* Date of Birth */}
                   <td className="py-4 px-6 text-sm text-slate-600">
-                    {student.dateOfBirth || <span className="text-slate-300">—</span>}
+                    {student.dateOfBirth || (
+                      <span className="text-slate-300">—</span>
+                    )}
                   </td>
 
                   {/* Table Actions */}
@@ -227,7 +270,9 @@ const loadStudents = async () => {
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteStudent(student.id || student.studentCode)}
+                        onClick={() =>
+                          handleDeleteStudent(student.id || student.studentCode)
+                        }
                         className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                         title="Delete Profile"
                       >
@@ -255,8 +300,12 @@ const loadStudents = async () => {
           <div className="fixed top-0 right-0 h-full w-[440px] bg-white border-l border-slate-100 shadow-2xl z-50 flex flex-col p-6 transition-all duration-200">
             <div className="flex justify-between items-center pb-4 border-b border-slate-100 mb-6">
               <div>
-                <h3 className="text-lg font-bold text-slate-900">Modify Student Profile</h3>
-                <p className="text-xs text-slate-400 font-medium">Update database properties safely</p>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Modify Student Profile
+                </h3>
+                <p className="text-xs text-slate-400 font-medium">
+                  Update database properties safely
+                </p>
               </div>
               <button
                 onClick={() => setIsDrawerOpen(false)}
@@ -267,7 +316,10 @@ const loadStudents = async () => {
             </div>
 
             {/* Editing Form */}
-            <form onSubmit={handleUpdateStudent} className="flex-1 flex flex-col justify-between">
+            <form
+              onSubmit={handleUpdateStudent}
+              className="flex-1 flex flex-col justify-between"
+            >
               <div className="space-y-4">
                 {/* Full Name */}
                 <div>
@@ -347,7 +399,11 @@ const loadStudents = async () => {
               <div className="pt-6 border-t border-slate-100 flex items-center justify-between gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => handleDeleteStudent(selectedStudent.id || selectedStudent.studentCode)}
+                  onClick={() =>
+                    handleDeleteStudent(
+                      selectedStudent.id || selectedStudent.studentCode,
+                    )
+                  }
                   className="px-4 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition font-bold text-sm flex items-center gap-2"
                 >
                   <Trash2 className="w-4 h-4" />

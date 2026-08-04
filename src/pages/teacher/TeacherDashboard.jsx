@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Search,
   Bell,
@@ -17,45 +17,133 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-// Importing the CreateClassModal we polished earlier
 import CreateClassModal from "../../components/CreateClassModal";
+import api from "../../services/api";
+import { useAuth } from "../../context/AuthContext";
+import classService from "../../services/classService";
+import attendanceService from "../../services/attendanceService";
 
 export default function TeacherDashboard() {
+  const { user, loading: authLoading } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [classes, setClasses] = useState([
-    { id: 1, code: "MATH-204", title: "Advanced Calculus II", room: "402B", schedule: "MWF 09:00 AM" }
-  ]);
+  const [classes, setClasses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Dynamic Chart Data (Height percentages for the SVG bars)
-  const chartData = [
-    { day: "Mon", attendance: 92 },
-    { day: "Tue", attendance: 88 },
-    { day: "Wed", attendance: 95 },
-    { day: "Thu", attendance: 90 },
-    { day: "Fri", attendance: 85 },
-  ];
+  // State to store Dashboard Stats from the API
+  const [dashboardData, setDashboardData] = useState({
+    absentRate: 0,
+    presentRate: 0,
+    totalAbsent: 0,
+    totalAttendance: 0,
+    totalClasses: 0,
+    totalPresent: 0,
+    totalStudents: 0,
+  });
 
+  // Fetch Dashboard Data on Mount
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (authLoading) return;
+
+      try {
+        // Reset state when user changes
+        setIsLoading(true);
+        setError(null);
+        setClasses([]);
+        setDashboardData({
+          absentRate: 0,
+          presentRate: 0,
+          totalAbsent: 0,
+          totalAttendance: 0,
+          totalClasses: 0,
+          totalPresent: 0,
+          totalStudents: 0,
+        });
+
+        // Fetch classes from the existing endpoint
+        const classesResponse = await classService.getClasses();
+        const classList = Array.isArray(classesResponse)
+          ? classesResponse
+          : Array.isArray(classesResponse?.data)
+            ? classesResponse.data
+            : [];
+
+        // Calculate totals from classes
+        const totalClasses = classList.length;
+        const totalStudents = classList.reduce(
+          (sum, c) => sum + (c.studentCount || 0),
+          0,
+        );
+
+        // Fetch all attendance records
+        const attendanceResponse = await attendanceService.getAttendance();
+        const attendanceRecords = Array.isArray(attendanceResponse)
+          ? attendanceResponse
+          : attendanceResponse?.data || [];
+
+        // Calculate attendance stats
+        const totalAttendance = attendanceRecords.length;
+        const totalPresent = attendanceRecords.filter(
+          (r) => r.status === "PRESENT" || r.status === "present",
+        ).length;
+        const totalAbsent = attendanceRecords.filter(
+          (r) => r.status === "ABSENT" || r.status === "absent",
+        ).length;
+
+        const presentRate =
+          totalAttendance > 0 ? (totalPresent / totalAttendance) * 100 : 0;
+        const absentRate =
+          totalAttendance > 0 ? (totalAbsent / totalAttendance) * 100 : 0;
+
+        setDashboardData({
+          absentRate,
+          presentRate,
+          totalAbsent,
+          totalAttendance,
+          totalClasses,
+          totalPresent,
+          totalStudents,
+        });
+
+        setClasses(classList);
+      } catch (err) {
+        console.error("Dashboard API Error:", err);
+        setError(
+          err?.response?.data?.message ||
+            err.message ||
+            "Failed to fetch dashboard data",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [authLoading, user?.id]);
+
+  // Map API values into Metric Objects
   const metrics = [
     {
       title: "Total Classes",
-      value: String(classes.length).padStart(2, "0"),
-      badge: `+${classes.length - 1} this sem`,
+      value: String(Number(dashboardData.totalClasses) || 0).padStart(2, "0"),
+      badge: "Active",
       badgeBg: "bg-emerald-50 text-emerald-600",
       icon: Notebook,
       iconBg: "bg-blue-50 text-blue-600",
     },
     {
       title: "Total Students",
-      value: "242",
-      badge: "242 Total",
+      value: String(Number(dashboardData.totalStudents) || 0),
+      badge: `${Number(dashboardData.totalStudents) || 0} Enrolled`,
       badgeBg: "bg-slate-100 text-slate-600",
       icon: Users,
       iconBg: "bg-indigo-50 text-indigo-600",
     },
     {
-      title: "Today's Presence",
-      value: "218",
-      badge: "Update 1h ago",
+      title: "Total Present",
+      value: String(Number(dashboardData.totalPresent) || 0),
+      badge: `${Number(dashboardData.totalAttendance) || 0} Records`,
       badgeBg: "bg-amber-50 text-amber-600",
       icon: CalendarCheck,
       iconBg: "bg-orange-50 text-orange-600",
@@ -65,7 +153,7 @@ export default function TeacherDashboard() {
   const rateMetrics = [
     {
       label: "Present Rate",
-      value: "90.2%",
+      value: `${Number(dashboardData.presentRate || 0).toFixed(1)}%`,
       color: "text-blue-600",
       barColor: "bg-blue-600",
       borderColor: "border-l-[4px] border-l-blue-600",
@@ -74,13 +162,22 @@ export default function TeacherDashboard() {
     },
     {
       label: "Absent Rate",
-      value: "9.8%",
+      value: `${Number(dashboardData.absentRate || 0).toFixed(1)}%`,
       color: "text-red-500",
       barColor: "bg-red-500",
       borderColor: "border-l-[4px] border-l-red-500",
       icon: MoveDownRight,
       iconBg: "bg-red-50",
     },
+  ];
+
+  // Placeholder Chart Data & Activities
+  const chartData = [
+    { day: "Mon", attendance: 92 },
+    { day: "Tue", attendance: 88 },
+    { day: "Wed", attendance: 95 },
+    { day: "Thu", attendance: 90 },
+    { day: "Fri", attendance: 85 },
   ];
 
   const activities = [
@@ -120,13 +217,26 @@ export default function TeacherDashboard() {
     };
     setClasses((prev) => [...prev, newClass]);
     setIsModalOpen(false);
-    alert(`Class "${newClass.title}" created successfully!`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-slate-500 text-sm font-medium">
+        Loading dashboard metrics...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen text-red-500 text-sm font-medium">
+        Error loading dashboard: {error}
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 min-h-screen bg-[#fafbfe] font-sans text-slate-800">
-  
-      {/* Primary Container Grid */}
       <main className="p-8 max-w-[1400px] mx-auto space-y-6">
         {/* Hero Meta Information */}
         <div className="flex items-start justify-between">
@@ -135,11 +245,12 @@ export default function TeacherDashboard() {
               Teacher Dashboard
             </h1>
             <p className="text-xs text-slate-500 mt-1 font-medium">
-              Welcome back, Prof. Harrison. Here's your overview for today.
+              Welcome back, {user?.name || "Teacher"}. Here's your overview for
+              today.
             </p>
           </div>
           <div className="flex gap-3">
-            <button 
+            <button
               onClick={() => setIsModalOpen(true)}
               className="flex items-center gap-1.5 bg-[#0052cc] hover:bg-[#0043a8] text-white font-semibold text-xs px-4 py-2.5 rounded-lg shadow-sm transition-colors"
             >
@@ -149,7 +260,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        {/* Top-Level Metrics Array Grid */}
+        {/* Dynamic Top Metrics Array Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {metrics.map((item, index) => {
             const Icon = item.icon;
@@ -162,7 +273,9 @@ export default function TeacherDashboard() {
                   <div className={`p-2 rounded-lg ${item.iconBg}`}>
                     <Icon className="w-4 h-4" />
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${item.badgeBg}`}>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded ${item.badgeBg}`}
+                  >
                     {item.badge}
                   </span>
                 </div>
@@ -186,7 +299,9 @@ export default function TeacherDashboard() {
                 className={`bg-white border border-slate-100 rounded-xl p-4 flex flex-col justify-between shadow-[0_2px_8px_rgba(0,0,0,0.01)] min-h-[120px] ${rate.borderColor}`}
               >
                 <div className="flex items-start justify-between">
-                  <div className={`p-2 rounded-lg ${rate.iconBg} ${rate.color}`}>
+                  <div
+                    className={`p-2 rounded-lg ${rate.iconBg} ${rate.color}`}
+                  >
                     <Icon className="w-4 h-4" />
                   </div>
                   <span className={`text-sm font-black ${rate.color}`}>
@@ -211,7 +326,7 @@ export default function TeacherDashboard() {
 
         {/* Analytics Breakdown & Feed Section */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Active SVG Graph Container */}
+          {/* SVG Bar Chart */}
           <div className="lg:col-span-2 bg-white border border-slate-100 rounded-xl p-5 flex flex-col justify-between min-h-[380px]">
             <div className="flex items-center justify-between">
               <div>
@@ -228,9 +343,7 @@ export default function TeacherDashboard() {
               </button>
             </div>
 
-            {/* Dynamic Interactive SVG Bar Chart Graph */}
             <div className="flex-1 flex items-end justify-between px-6 pt-10 pb-2 relative h-48">
-              {/* Chart Grid Lines */}
               <div className="absolute inset-x-0 top-10 bottom-2 flex flex-col justify-between pointer-events-none">
                 <div className="w-full border-b border-dashed border-slate-100" />
                 <div className="w-full border-b border-dashed border-slate-100" />
@@ -238,17 +351,17 @@ export default function TeacherDashboard() {
                 <div className="w-full border-b border-dashed border-slate-100" />
               </div>
 
-              {/* Rendering Interactive Bars */}
               {chartData.map((data, index) => (
-                <div key={index} className="flex flex-col items-center gap-2 z-10 w-12 group">
+                <div
+                  key={index}
+                  className="flex flex-col items-center gap-2 z-10 w-12 group"
+                >
                   <div className="relative w-full flex justify-center">
-                    {/* Tooltip on Hover */}
                     <span className="absolute -top-8 bg-slate-800 text-white text-[10px] font-semibold px-2 py-0.5 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity">
                       {data.attendance}%
                     </span>
-                    {/* Bar Pill */}
-                    <div 
-                      style={{ height: `${data.attendance * 1.5}px` }} 
+                    <div
+                      style={{ height: `${data.attendance * 1.5}px` }}
                       className="w-8 bg-[#0052cc]/10 group-hover:bg-[#0052cc] rounded-t-lg transition-all duration-300 ease-out"
                     />
                   </div>
@@ -260,25 +373,29 @@ export default function TeacherDashboard() {
             </div>
           </div>
 
-          {/* Right Activities Widget Feed */}
+          {/* Activities Feed */}
           <div className="bg-white border border-slate-100 rounded-xl p-5 flex flex-col justify-between min-h-[380px]">
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-slate-900">
                   Recent Activity
                 </h3>
-                <a href="#view-all" className="text-xs font-semibold text-blue-600 hover:underline">
+                <a
+                  href="#view-all"
+                  className="text-xs font-semibold text-blue-600 hover:underline"
+                >
                   View All
                 </a>
               </div>
 
-              {/* Feed List Mapping */}
               <div className="space-y-4">
                 {activities.map((act, index) => {
                   const Icon = act.icon;
                   return (
                     <div key={index} className="flex items-start gap-3">
-                      <div className={`p-2 rounded-full shrink-0 ${act.iconBg} ${act.iconColor}`}>
+                      <div
+                        className={`p-2 rounded-full shrink-0 ${act.iconBg} ${act.iconColor}`}
+                      >
                         <Icon className="w-4 h-4" strokeWidth={2.5} />
                       </div>
                       <div className="space-y-0.5">
@@ -301,11 +418,10 @@ export default function TeacherDashboard() {
         </div>
       </main>
 
-      {/* Interactive Modal Component */}
-      <CreateClassModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        onSubmit={handleCreateClass} 
+      <CreateClassModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleCreateClass}
       />
     </div>
   );
