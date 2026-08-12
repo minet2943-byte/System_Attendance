@@ -11,8 +11,8 @@ import historyService from "../../services/historyService";
 import classService from "../../services/classService";
 
 export default function History() {
-  const [fromDate, setFromDate] = useState("2023-10-01");
-  const [toDate, setToDate] = useState("2023-10-31");
+  const [fromDate, setFromDate] = useState("2026-01-01");
+  const [toDate, setToDate] = useState("2026-10-31");
   // API State
   const [reportData, setReportData] = useState([]);
   const [loading, setLoading] = useState(false);

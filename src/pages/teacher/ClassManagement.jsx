@@ -11,6 +11,8 @@ import {
   Trash2,
   PlusCircle,
   ClipboardCheck,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 
 import CreateClassModal from "../../components/CreateClassModal";
@@ -20,6 +22,7 @@ import classService from "../../services/classService";
 import studentService from "../../services/studentService";
 import enrollService from "../../services/enrollService";
 import { useAuth } from "../../context/AuthContext";
+import { showError, showSuccess } from "../../utils/notifications";
 
 export default function ClassManagement() {
   const navigate = useNavigate();
@@ -39,6 +42,9 @@ export default function ClassManagement() {
   // Add Student Modal
   const [isStudentModalOpen, setIsStudentModalOpen] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState(null);
+
+  // Delete confirmation modal
+  const [classToDelete, setClassToDelete] = useState(null);
 
   // ===============================
   // API Calls & Data Fetching
@@ -105,32 +111,29 @@ export default function ClassManagement() {
     try {
       if (editingClass) {
         await classService.updateClass(editingClass.id, data);
-        alert("Class updated successfully");
+        showSuccess("Class updated successfully");
       } else {
         await classService.createClass(data);
-        alert("Class created successfully");
+        showSuccess("Class created successfully");
       }
       closeModal();
       fetchClasses();
     } catch (err) {
       console.error("Failed to submit class:", err);
-      alert("Operation failed");
+      showError("Operation failed");
     }
   };
 
-  const handleDeleteClass = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this class?",
-    );
-    if (!confirmDelete) return;
-
+  const handleDeleteClass = async () => {
+    if (!classToDelete) return;
     try {
-      await classService.deleteClass(id);
-      alert("Deleted successfully");
+      await classService.deleteClass(classToDelete.id);
+      setClassToDelete(null);
+      showSuccess("Class deleted successfully");
       fetchClasses();
     } catch (err) {
       console.error("Failed to delete class:", err);
-      alert("Delete failed");
+      showError("Delete failed");
     }
   };
 
@@ -159,7 +162,7 @@ export default function ClassManagement() {
         classId: selectedClassId,
       });
 
-      alert("Student created successfully");
+      showSuccess("Student created successfully");
       setIsStudentModalOpen(false);
       fetchClasses();
     } catch (err) {
@@ -167,7 +170,7 @@ export default function ClassManagement() {
         "Failed to create student:",
         err.response?.data || err.message,
       );
-      alert("Create student failed");
+      showError("Create student failed");
     }
   };
 
@@ -285,7 +288,7 @@ export default function ClassManagement() {
                     </button>
 
                     <button
-                      onClick={() => handleDeleteClass(cls.id)}
+                      onClick={() => setClassToDelete(cls)}
                       className="text-slate-400 hover:text-red-500 transition-colors"
                       title="Delete Class"
                     >
@@ -395,6 +398,60 @@ export default function ClassManagement() {
         classes={classList}
         selectedClassId={selectedClassId}
       />
+
+      {classToDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="delete-class-title"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl overflow-hidden">
+            <div className="flex items-start justify-between p-6 pb-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h2
+                    id="delete-class-title"
+                    className="text-lg font-bold text-slate-900"
+                  >
+                    Delete class?
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    This will permanently delete <strong className="text-slate-700">{classToDelete.title}</strong>.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setClassToDelete(null)}
+                className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Close delete confirmation"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setClassToDelete(null)}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteClass}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-red-700"
+              >
+                Delete class
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

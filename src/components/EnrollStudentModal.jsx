@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import enrollService from "../services/enrollService";
+import { showError, showSuccess, showWarning } from "../utils/notifications";
 
 export default function EnrollStudentModal({ isOpen, onClose, onSuccess }) {
   const [students, setStudents] = useState([]);
@@ -43,7 +44,7 @@ export default function EnrollStudentModal({ isOpen, onClose, onSuccess }) {
     e.preventDefault();
 
     if (!studentId || !classId) {
-      alert("Please select both a student and a class.");
+      showWarning("Please select both a student and a class.");
       return;
     }
 
@@ -55,12 +56,12 @@ export default function EnrollStudentModal({ isOpen, onClose, onSuccess }) {
         classId: Number(classId),
       });
 
-      alert("Enrollment successful!");
+      showSuccess("Enrollment successful!");
       onSuccess();
       onClose();
     } catch (error) {
       console.error("Enrollment error:", error);
-      alert(
+      showError(
         error.response?.data?.message ||
         error.response?.data ||
         "Enrollment failed. Please try again."

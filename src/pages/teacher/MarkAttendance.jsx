@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import Swal from "sweetalert2";
 import {
   Users,
   CheckCircle2,
@@ -18,6 +17,7 @@ import attendanceSessionService from "../../services/attendanceSessionService";
 import studentService from "../../services/studentService";
 import attendanceService from "../../services/attendanceService";
 import classService from "../../services/classService";
+import { showError, showSuccess } from "../../utils/notifications";
 
 export default function MarkAttendance() {
   const [students, setStudents] = useState([]);
@@ -151,25 +151,11 @@ export default function MarkAttendance() {
         ),
       );
 
-      // Centered Success Modal
-      Swal.fire({
-        title: "Success!",
-        text: "Attendance saved successfully.",
-        icon: "success",
-        confirmButtonText: "OK",
-        confirmButtonColor: "#3085d6",
-      });
+      showSuccess("Attendance saved successfully.");
     } catch (error) {
       console.error(error);
 
-      // Centered Error Modal
-      Swal.fire({
-        title: "Error!",
-        text: error.response?.data?.message || "Cannot save attendance.",
-        icon: "error",
-        confirmButtonText: "Try Again",
-        confirmButtonColor: "#d33",
-      });
+      showError(error.response?.data?.message || "Cannot save attendance.");
     }
   };
   // Safe search logic: Casts ID to String to avoid runtime .toLowerCase() crashes

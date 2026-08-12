@@ -8,6 +8,7 @@ import {
   Save,
 } from "lucide-react";
 import studentService from "../../services/studentService";
+import { confirmDelete, showError, showSuccess } from "../../utils/notifications";
 
 export default function StudentRoster() {
   const [students, setStudents] = useState([]);
@@ -66,12 +67,12 @@ export default function StudentRoster() {
     const targetId = selectedStudent.id || selectedStudent.studentCode;
     try {
       await studentService.updateStudent(targetId, selectedStudent);
-      alert("Student updated successfully!");
+      showSuccess("Student updated successfully!");
       setIsDrawerOpen(false);
       loadStudents(); // Refresh data grid
     } catch (error) {
       console.error("Error updating student:", error);
-      alert("Failed to update student settings.");
+      showError("Failed to update student settings.");
     } finally {
       setActionLoading(false);
     }
@@ -79,12 +80,8 @@ export default function StudentRoster() {
 
   // Delete Student Function
   const handleDeleteStudent = async (targetId) => {
-    if (
-      !window.confirm(
-        "Are you absolutely sure you want to permanently delete this student record?",
-      )
-    )
-      return;
+    const isConfirmed = await confirmDelete("this student record");
+    if (!isConfirmed) return;
 
     try {
       await studentService.deleteStudent(targetId);
@@ -105,10 +102,10 @@ export default function StudentRoster() {
         setIsDrawerOpen(false);
       }
 
-      alert("Student deleted successfully!");
+      showSuccess("Student deleted successfully!");
     } catch (error) {
       console.error("Error deleting student:", error);
-      alert("Failed to delete student record.");
+      showError("Failed to delete student record.");
     }
   };
 
@@ -165,6 +162,7 @@ export default function StudentRoster() {
             <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50/50">
               <th className="py-4 px-6">Student Info</th>
               <th className="py-4 px-6">System Code</th>
+              <th className="py-4 px-6">Gender</th>
               <th className="py-4 px-6">Email Address</th>
               <th className="py-4 px-6">Phone Number</th>
               <th className="py-4 px-6">Date of Birth</th>
@@ -183,6 +181,9 @@ export default function StudentRoster() {
                       <div className="h-4 bg-slate-200 rounded w-28" />
                       <div className="h-3 bg-slate-200 rounded w-16" />
                     </div>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 bg-slate-200 rounded w-20" />
                   </td>
                   <td className="py-4 px-6">
                     <div className="h-4 bg-slate-200 rounded w-20" />
@@ -238,6 +239,9 @@ export default function StudentRoster() {
                   {/* Code */}
                   <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-600">
                     {student.studentCode}
+                  </td>
+                   <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-600">
+                    {student.gender}
                   </td>
 
                   {/* Email */}
@@ -332,6 +336,19 @@ export default function StudentRoster() {
                     required
                     className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     value={selectedStudent.name || ""}
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">
+                    Gender
+                  </label>
+                  <input
+                    type="text"
+                    name="gender"
+                    required
+                    className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedStudent.gender || ""}
                     onChange={handleInputChange}
                   />
                 </div>

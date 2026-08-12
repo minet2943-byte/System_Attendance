@@ -43,6 +43,7 @@ export default function CreateStudentModal({
       name: formData.name,
       studentCode: formData.studentCode,
       email: formData.email,
+      gender:formData.gender,
       password: formData.password,
       phoneNumber: formData.phoneNumber,
       dateOfBirth: formData.dateOfBirth,
@@ -55,6 +56,7 @@ export default function CreateStudentModal({
       name: "",
       email: "",
       password: "",
+      gernder:"",
       confirmPassword: "",
       studentCode: "",
       classId: "",
@@ -177,6 +179,18 @@ export default function CreateStudentModal({
                   name="name"
                   placeholder="John Doe"
                   value={formData.name}
+                  onChange={handleChange}
+                  className={inputClasses}
+                  required
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelClasses}>Gender *</label>
+                <input
+                  type="text"
+                  name="gender"
+                  placeholder="MALE/FEMALE"
+                  value={formData.gender}
                   onChange={handleChange}
                   className={inputClasses}
                   required
