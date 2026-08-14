@@ -10,6 +10,14 @@ import {
 import studentService from "../../services/studentService";
 import { confirmDelete, showError, showSuccess } from "../../utils/notifications";
 
+const getGenderLabel = (student) => {
+  const gender = student.gender ?? student.Gender ?? student.sex;
+
+  if (!gender) return "Not provided";
+
+  return gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase();
+};
+
 export default function StudentRoster() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -240,8 +248,8 @@ export default function StudentRoster() {
                   <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-600">
                     {student.studentCode}
                   </td>
-                   <td className="py-4 px-6 font-mono text-xs font-semibold text-slate-600">
-                    {student.gender}
+                  <td className="py-4 px-6 text-sm font-medium text-slate-600">
+                    {getGenderLabel(student)}
                   </td>
 
                   {/* Email */}

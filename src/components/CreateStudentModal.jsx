@@ -16,6 +16,7 @@ export default function CreateStudentModal({
     classId: "",
     phoneNumber: "",
     dateOfBirth: "",
+    gender: "",
   });
 
   const [error, setError] = useState("");
@@ -56,7 +57,7 @@ export default function CreateStudentModal({
       name: "",
       email: "",
       password: "",
-      gernder:"",
+      gender: "",
       confirmPassword: "",
       studentCode: "",
       classId: "",
@@ -186,15 +187,17 @@ export default function CreateStudentModal({
               </div>
               <div className="md:col-span-2">
                 <label className={labelClasses}>Gender *</label>
-                <input
-                  type="text"
+                <select
                   name="gender"
-                  placeholder="MALE/FEMALE"
                   value={formData.gender}
                   onChange={handleChange}
                   className={inputClasses}
                   required
-                />
+                >
+                  <option value="">Select Gender</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                </select>
               </div>
               <div>
                 <label className={labelClasses}>Email *</label>
