@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>System Attendance</title>
+    <script>
+      const repositoryBase = "/System_Attendance";
+      const route = window.location.pathname.startsWith(repositoryBase)
+        ? window.location.pathname.slice(repositoryBase.length)
+        : window.location.pathname;
+
+      window.location.replace(
+        `${repositoryBase}/#${route || "/"}${window.location.search}${window.location.hash}`,
+      );
+    </script>
+  </head>
+  <body></body>
+</html>
