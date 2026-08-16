@@ -1,6 +1,14 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, GraduationCap, User, ChevronDown } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  GraduationCap,
+  User,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 export default function RegisterForm() {
@@ -31,7 +39,8 @@ export default function RegisterForm() {
       await register(name, email, password, role);
 
       // Redirect to appropriate dashboard right after registration
-      const dashboard = role.toLowerCase() === "teacher" ? "/teacher" : "/student";
+      const dashboard =
+        role.toLowerCase() === "teacher" ? "/teacher" : "/student";
       navigate(dashboard);
     } catch (err) {
       setError(err.message || "Registration failed. Please try again.");
@@ -173,13 +182,22 @@ export default function RegisterForm() {
               onChange={(e) => setAgreeTerms(e.target.checked)}
               className="mt-0.5 w-4 h-4 rounded border-slate-300 text-[#0052cc] focus:ring-[#0052cc]/20 accent-[#0052cc] cursor-pointer"
             />
-            <label htmlFor="terms" className="cursor-pointer select-none text-[#64748b]">
+            <label
+              htmlFor="terms"
+              className="cursor-pointer select-none text-[#64748b]"
+            >
               I agree to the{" "}
-              <a href="#terms" className="font-semibold text-[#0052cc] hover:underline">
+              <a
+                href="#terms"
+                className="font-semibold text-[#0052cc] hover:underline"
+              >
                 Terms of Service
               </a>{" "}
               and{" "}
-              <a href="#privacy" className="font-semibold text-[#0052cc] hover:underline">
+              <a
+                href="#privacy"
+                className="font-semibold text-[#0052cc] hover:underline"
+              >
                 Privacy Policy
               </a>
             </label>
@@ -199,12 +217,12 @@ export default function RegisterForm() {
       {/* Footer Section */}
       <div className="mt-6 text-sm text-[#64748b]">
         Already have an account?{" "}
-        <a
-          href="/login"
+        <Link
+          to="/login"
           className="font-semibold text-[#0052cc] hover:underline"
         >
           Sign In
-        </a>
+        </Link>
       </div>
     </div>
   );
